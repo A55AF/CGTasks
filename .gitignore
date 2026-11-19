@@ -8,6 +8,7 @@
 *.pdb
 *.g.resources
 *.exe.config
+.vs/
 CGAlgorithms/obj/*
 CGAlgorithms/bin/*
 CGUI/obj/*
