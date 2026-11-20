@@ -57,8 +57,9 @@ namespace CGAlgorithms.Algorithms.ConvexHull
             foreach (Point p in points)
             {
                 var cur = new Tuple<double, double>(p.X, p.Y);
-                if (uniquePointsTmp.Add(cur))
-                    pts.Add(p);
+                if (uniquePointsTmp.Contains(cur)) continue;
+                uniquePointsTmp.Add(cur);
+                pts.Add(p);
             }
 
             if (pts.Count <= 2)
