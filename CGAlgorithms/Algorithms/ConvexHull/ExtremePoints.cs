@@ -9,11 +9,6 @@ namespace CGAlgorithms.Algorithms.ConvexHull
 {
     public class ExtremePoints : Algorithm
     {
-        public bool OnSegment(Point a, Point b, Point c, Point d)
-        {
-            return Math.Min(Math.Min(a.X, b.X), c.X) <= d.X && d.X <= Math.Max(Math.Max(a.X, b.X), c.X)
-                && Math.Min(Math.Min(a.Y, b.Y), c.Y) <= d.Y && d.Y <= Math.Max(Math.Max(a.Y, b.Y), c.Y);
-        }
         public override void Run(List<Point> points, List<Line> lines, List<Polygon> polygons, ref List<Point> outPoints, ref List<Line> outLines, ref List<Polygon> outPolygons)
         {
             var uniquePointsTmp = new HashSet<Tuple<double, double>>();
@@ -73,7 +68,9 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                             if (HelperMethods.CheckTurn(new Line(p1, p2), p3) == Enums.TurnType.Colinear)
                             {
                                 if (HelperMethods.CheckTurn(new Line(p1, p2), cand) == Enums.TurnType.Colinear
-                                    && OnSegment(p1, p2, p3, cand))
+                                    && (HelperMethods.PointOnSegment(cand, p1, p2)
+                                    || HelperMethods.PointOnSegment(cand, p1, p3)
+                                    || HelperMethods.PointOnSegment(cand, p2, p3)))
                                 {
                                     interior = true;
                                     break;
