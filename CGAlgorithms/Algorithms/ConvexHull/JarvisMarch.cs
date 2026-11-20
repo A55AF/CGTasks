@@ -97,20 +97,19 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                         continue;
                     }
 
-                    // Evaluate orientation of triplet (v, pj, pk) using 2D cross product:
-                    // CrossProduct = (pj.X - v.X) * (pk.Y - v.Y) - (pj.Y - v.Y) * (pk.X - v.X)
-                    double crossProduct = GetCrossProduct(v, pj, pk);
+                    // Evaluate orientation of triplet (v, pj, pk) using HelperMethods.CheckTurn
+                    Enums.TurnType turn = HelperMethods.CheckTurn(new Line(v, pj), pk);
 
-                    if (crossProduct < -Constants.Epsilon)
+                    if (turn == Enums.TurnType.Right)
                     {
                         // pk is angularly more to the right of ray (v -> pj)
                         pj = pk;
                     }
-                    else if (Math.Abs(crossProduct) <= Constants.Epsilon)
+                    else if (turn == Enums.TurnType.Colinear)
                     {
                         // 4. Collinear tie-breaking:
                         // If v, pj, and pk are collinear, choose the point farthest from v
-                        if (GetDistanceSquared(v, pk) > GetDistanceSquared(v, pj))
+                        if (v.Vector(pk).Magnitude() > v.Vector(pj).Magnitude())
                         {
                             pj = pk;
                         }
@@ -128,27 +127,6 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 outPoints.Add(pj);
                 v = pj;
             }
-        }
-
-        /// <summary>
-        /// Calculates the 2D cross product of vectors (a -> b) and (a -> c).
-        /// Value < 0: Right turn (clockwise)
-        /// Value > 0: Left turn (counter-clockwise)
-        /// Value == 0: Collinear
-        /// </summary>
-        private double GetCrossProduct(Point a, Point b, Point c)
-        {
-            return (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
-        }
-
-        /// <summary>
-        /// Calculates the squared Euclidean distance between two points.
-        /// </summary>
-        private double GetDistanceSquared(Point a, Point b)
-        {
-            double dx = a.X - b.X;
-            double dy = a.Y - b.Y;
-            return dx * dx + dy * dy;
         }
 
         public override string ToString()

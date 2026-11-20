@@ -90,7 +90,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
             List<Point> filteredPoints = new List<Point>();
             for (int j = 0; j < remainingPoints.Count; j++)
             {
-                while (j < remainingPoints.Count - 1 && IsSameRay(v, remainingPoints[j], remainingPoints[j + 1]))
+                while (j < remainingPoints.Count - 1 && HelperMethods.CheckTurn(new Line(v, remainingPoints[j]), remainingPoints[j + 1]) == Enums.TurnType.Colinear)
                 {
                     j++;
                 }
@@ -137,10 +137,10 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 Point p = l[l.Count - 1];          // top(l)
                 Point p_minus = l[l.Count - 2];    // previous(top(l))
 
-                // Test turn of sequence (p_minus -> p -> pi) using 2D cross product
-                double crossProduct = GetCrossProduct(p_minus, p, pi);
+                // Test turn of sequence (p_minus -> p -> pi) using HelperMethods.CheckTurn
+                Enums.TurnType turn = HelperMethods.CheckTurn(new Line(p_minus, p), pi);
 
-                if (crossProduct > Constants.Epsilon)
+                if (turn == Enums.TurnType.Left)
                 {
                     // Strict Left Turn: accept pi and advance to next point
                     l.Add(pi);
@@ -158,26 +158,6 @@ namespace CGAlgorithms.Algorithms.ConvexHull
             {
                 outPoints.Add(l[j]);
             }
-        }
-
-        /// <summary>
-        /// Calculates the 2D cross product of vectors (p - p_minus) and (pi - p_minus).
-        /// Value > 0: Strict Left Turn (Counter-Clockwise)
-        /// Value < 0: Right Turn (Clockwise)
-        /// Value == 0: Collinear
-        /// </summary>
-        private double GetCrossProduct(Point p_minus, Point p, Point pi)
-        {
-            return (p.X - p_minus.X) * (pi.Y - p_minus.Y) - (p.Y - p_minus.Y) * (pi.X - p_minus.X);
-        }
-
-        /// <summary>
-        /// Checks if two points p1 and p2 lie on the same ray from origin point v.
-        /// </summary>
-        private bool IsSameRay(Point v, Point p1, Point p2)
-        {
-            double crossProduct = GetCrossProduct(v, p1, p2);
-            return Math.Abs(crossProduct) <= Constants.Epsilon;
         }
 
         /// <summary>
@@ -202,9 +182,9 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     return angle1.CompareTo(angle2);
                 }
 
-                // If angles are identical (collinear with v), sort by squared distance ascending
-                double dist1 = (p1.X - v.X) * (p1.X - v.X) + (p1.Y - v.Y) * (p1.Y - v.Y);
-                double dist2 = (p2.X - v.X) * (p2.X - v.X) + (p2.Y - v.Y) * (p2.Y - v.Y);
+                // If angles are identical (collinear with v), sort by distance ascending
+                double dist1 = v.Vector(p1).Magnitude();
+                double dist2 = v.Vector(p2).Magnitude();
 
                 return dist1.CompareTo(dist2);
             }
