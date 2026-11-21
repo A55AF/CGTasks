@@ -8,7 +8,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
     {
         public override void Run(List<Point> points, List<Line> lines, List<Polygon> polygons, ref List<Point> outPoints, ref List<Line> outLines, ref List<Polygon> outPolygons)
         {
-            // 1. edge cases
+            // base cases
             if (points == null || points.Count == 0)
             {
                 return;
@@ -23,10 +23,9 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 outPoints.Clear();
             }
 
-            // handle small sets of points (<= 3 points)
+            // if 3 or fewer points, just remove duplicates and return
             if (points.Count <= 3)
             {
-                // eliminate duplicates (if any) or add points directly to outpoints
                 for (int i = 0; i < points.Count; i++)
                 {
                     bool isDuplicate = false;
@@ -47,8 +46,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 return;
             }
 
-            // 2. step 1: lexicographically smallest point
-            // find point with minimum x coordinate (tie-break with minimum y coordinate)
+            // find the leftmost point (lowest y to break ties)
             Point p0 = points[0];
             for (int i = 1; i < points.Count; i++)
             {
@@ -64,12 +62,12 @@ namespace CGAlgorithms.Algorithms.ConvexHull
 
             outPoints.Add(p0);
 
-            // 3. step 2: wrapping loop (detecting angularly rightmost point)
+            // gift wrapping loop
             Point v = p0;
 
             while (true)
             {
-                // pick an initial candidate point pj from points that is not equal to v
+                // find an initial point different from current vertex v
                 Point pj = null;
                 for (int i = 0; i < points.Count; i++)
                 {
@@ -80,35 +78,31 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     }
                 }
 
-                // if all points are identical to v, no other candidate exists
                 if (pj == null)
                 {
                     break;
                 }
 
-                // iterate over all points pk in points to find the most clockwise / rightmost turn
+                // find the most rightward turn (clockwise)
                 for (int i = 0; i < points.Count; i++)
                 {
                     Point pk = points[i];
 
-                    // skip evaluating the current hull vertex itself
                     if (pk.Equals(v))
                     {
                         continue;
                     }
 
-                    // evaluate orientation of triplet (v, pj, pk) using helpermethods.checkturn
                     Enums.TurnType turn = HelperMethods.CheckTurn(new Line(v, pj), pk);
 
                     if (turn == Enums.TurnType.Right)
                     {
-                        // pk is angularly more to the right of ray (v -> pj)
+                        // pk is more to the right, update candidate
                         pj = pk;
                     }
                     else if (turn == Enums.TurnType.Colinear)
                     {
-                        // 4. collinear tie-breaking:
-                        // if v, pj, and pk are collinear, choose the point farthest from v
+                        // collinear points: pick the farthest one
                         if (v.Vector(pk).Magnitude() > v.Vector(pj).Magnitude())
                         {
                             pj = pk;
@@ -116,14 +110,12 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     }
                 }
 
-                // 5. termination check:
-                // if the detected rightmost point equals the starting point, the hull has wrapped around
+                // stop once we loop back to the start point
                 if (pj.Equals(outPoints[0]))
                 {
                     break;
                 }
 
-                // add the next hull vertex and advance
                 outPoints.Add(pj);
                 v = pj;
             }

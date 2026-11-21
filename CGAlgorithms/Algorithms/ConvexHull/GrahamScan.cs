@@ -8,7 +8,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
     {
         public override void Run(List<Point> points, List<Line> lines, List<Polygon> polygons, ref List<Point> outPoints, ref List<Line> outLines, ref List<Polygon> outPolygons)
         {
-            // 1. edge cases
+            // base cases
             if (points == null || points.Count == 0)
             {
                 return;
@@ -23,7 +23,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 outPoints.Clear();
             }
 
-            // handle small sets of points (<= 3 points)
+            // trivial cases (3 or fewer points)
             if (points.Count <= 3)
             {
                 for (int j = 0; j < points.Count; j++)
@@ -46,8 +46,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 return;
             }
 
-            // 2. step 1: find extreme vertex v and push to stack l
-            // choose the point with minimum y coordinate (if tied, minimum x coordinate)
+            // find anchor point with min y (min x on tie)
             Point v = points[0];
             for (int j = 1; j < points.Count; j++)
             {
@@ -61,11 +60,11 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 }
             }
 
-            // stack / list representing current convex hull
+            // stack to store hull vertices
             List<Point> l = new List<Point>();
             l.Add(v);
 
-            // collect all remaining points distinct from v
+            // get remaining points excluding pivot v
             List<Point> remainingPoints = new List<Point>();
             for (int j = 0; j < points.Count; j++)
             {
@@ -81,12 +80,10 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 return;
             }
 
-            // 3. angular sorting around v
-            // sort remaining points in counter-clockwise order by angle with v.
-            // if two points have the same angle (collinear with v), sort by distance ascending.
+            // sort by polar angle counter-clockwise around v
             remainingPoints.Sort(new RadialAngleComparer(v));
 
-            // for collinear points with the exact same angle from v, keep only the farthest point
+            // for collinear points on the same angle from v, keep only the farthest
             List<Point> filteredPoints = new List<Point>();
             for (int j = 0; j < remainingPoints.Count; j++)
             {
@@ -97,7 +94,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 filteredPoints.Add(remainingPoints[j]);
             }
 
-            // if only 1 distinct direction exists, all points are collinear
+            // all points lie on a straight line
             if (filteredPoints.Count < 2)
             {
                 for (int j = 0; j < filteredPoints.Count; j++)
@@ -111,17 +108,17 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 return;
             }
 
-            // 4. push first sorted point to stack l
+            // push first point to stack
             l.Add(filteredPoints[0]);
 
-            // prepare points to be explored (starting from index 1 of filtered points)
+            // remaining points to scan
             List<Point> pointsToExplore = new List<Point>();
             for (int j = 1; j < filteredPoints.Count; j++)
             {
                 pointsToExplore.Add(filteredPoints[j]);
             }
 
-            // 5. advance phase: while points remain, check left turn (push & advance i vs pop)
+            // advance through points and maintain left turns
             int i = 0;
             while (i < pointsToExplore.Count)
             {
@@ -134,35 +131,31 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     continue;
                 }
 
-                Point p = l[l.Count - 1];          // top(l)
-                Point p_minus = l[l.Count - 2];    // previous(top(l))
+                Point p = l[l.Count - 1];          // top
+                Point p_minus = l[l.Count - 2];    // second from top
 
-                // test turn of sequence (p_minus -> p -> pi) using helpermethods.checkturn
                 Enums.TurnType turn = HelperMethods.CheckTurn(new Line(p_minus, p), pi);
 
                 if (turn == Enums.TurnType.Left)
                 {
-                    // strict left turn: accept pi and advance to next point
+                    // keep point and move forward
                     l.Add(pi);
                     i++;
                 }
                 else
                 {
-                    // right turn or collinear: pop p and re-evaluate pi
+                    // non-left turn, pop top of stack and retry pi
                     l.RemoveAt(l.Count - 1);
                 }
             }
 
-            // 6. assign result to outpoints
             for (int j = 0; j < l.Count; j++)
             {
                 outPoints.Add(l[j]);
             }
         }
 
-        /// <summary>
-        /// comparer for angular sorting around vertex v.
-        /// </summary>
+        // custom comparer for polar angle sorting
         private class RadialAngleComparer : IComparer<Point>
         {
             private Point v;
@@ -182,7 +175,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     return angle1.CompareTo(angle2);
                 }
 
-                // if angles are identical (collinear with v), sort by distance ascending
+                // break ties with distance from v
                 double dist1 = v.Vector(p1).Magnitude();
                 double dist2 = v.Vector(p2).Magnitude();
 
