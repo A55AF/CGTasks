@@ -8,7 +8,7 @@ namespace CGAlgorithms.Algorithms.ConvexHull
     {
         public override void Run(List<Point> points, List<Line> lines, List<Polygon> polygons, ref List<Point> outPoints, ref List<Line> outLines, ref List<Polygon> outPolygons)
         {
-            // 1. Edge cases
+            // 1. edge cases
             if (points == null || points.Count == 0)
             {
                 return;
@@ -23,10 +23,10 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 outPoints.Clear();
             }
 
-            // Handle small sets of points (<= 3 points)
+            // handle small sets of points (<= 3 points)
             if (points.Count <= 3)
             {
-                // Eliminate duplicates (if any) or add points directly to outPoints
+                // eliminate duplicates (if any) or add points directly to outpoints
                 for (int i = 0; i < points.Count; i++)
                 {
                     bool isDuplicate = false;
@@ -47,8 +47,8 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 return;
             }
 
-            // 2. Step 1: Lexicographically smallest point
-            // Find point with minimum X coordinate (tie-break with minimum Y coordinate)
+            // 2. step 1: lexicographically smallest point
+            // find point with minimum x coordinate (tie-break with minimum y coordinate)
             Point p0 = points[0];
             for (int i = 1; i < points.Count; i++)
             {
@@ -64,12 +64,12 @@ namespace CGAlgorithms.Algorithms.ConvexHull
 
             outPoints.Add(p0);
 
-            // 3. Step 2: Wrapping loop (detecting angularly rightmost point)
+            // 3. step 2: wrapping loop (detecting angularly rightmost point)
             Point v = p0;
 
             while (true)
             {
-                // Pick an initial candidate point pj from points that is not equal to v
+                // pick an initial candidate point pj from points that is not equal to v
                 Point pj = null;
                 for (int i = 0; i < points.Count; i++)
                 {
@@ -80,24 +80,24 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     }
                 }
 
-                // If all points are identical to v, no other candidate exists
+                // if all points are identical to v, no other candidate exists
                 if (pj == null)
                 {
                     break;
                 }
 
-                // Iterate over all points pk in points to find the most clockwise / rightmost turn
+                // iterate over all points pk in points to find the most clockwise / rightmost turn
                 for (int i = 0; i < points.Count; i++)
                 {
                     Point pk = points[i];
 
-                    // Skip evaluating the current hull vertex itself
+                    // skip evaluating the current hull vertex itself
                     if (pk.Equals(v))
                     {
                         continue;
                     }
 
-                    // Evaluate orientation of triplet (v, pj, pk) using HelperMethods.CheckTurn
+                    // evaluate orientation of triplet (v, pj, pk) using helpermethods.checkturn
                     Enums.TurnType turn = HelperMethods.CheckTurn(new Line(v, pj), pk);
 
                     if (turn == Enums.TurnType.Right)
@@ -107,8 +107,8 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     }
                     else if (turn == Enums.TurnType.Colinear)
                     {
-                        // 4. Collinear tie-breaking:
-                        // If v, pj, and pk are collinear, choose the point farthest from v
+                        // 4. collinear tie-breaking:
+                        // if v, pj, and pk are collinear, choose the point farthest from v
                         if (v.Vector(pk).Magnitude() > v.Vector(pj).Magnitude())
                         {
                             pj = pk;
@@ -116,14 +116,14 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                     }
                 }
 
-                // 5. Termination check:
-                // If the detected rightmost point equals the starting point, the hull has wrapped around
+                // 5. termination check:
+                // if the detected rightmost point equals the starting point, the hull has wrapped around
                 if (pj.Equals(outPoints[0]))
                 {
                     break;
                 }
 
-                // Add the next hull vertex and advance
+                // add the next hull vertex and advance
                 outPoints.Add(pj);
                 v = pj;
             }
