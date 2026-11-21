@@ -1,144 +1,134 @@
 ﻿using CGUtilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CGAlgorithms.Algorithms.ConvexHull
 {
     public class QuickHull : Algorithm
     {
-        private void FindHull(Point a, Point b, List<Point> region, List<Point> outPoints)
+        private bool ContainsPoint(List<Point> list, Point target)
         {
-            if (region.Count == 0) return;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Equals(target))
+                    return true;
+            }
+            return false;
+        }
+
+        private void BuildHull(Point a, Point b, List<Point> candidates, List<Point> hull)
+        {
+            if (candidates.Count == 0)
+                return;
 
             Point ab = a.Vector(b);
-            Point far = region[0];
-            double maxDist = -1;
-            double minProj = double.MaxValue;
+            Point farthest = null;
+            double bestDist = Constants.Epsilon;
 
-            foreach (Point p in region)
+            foreach (Point p in candidates)
             {
-                Point ap = a.Vector(p);
-                double dist = Math.Abs(HelperMethods.CrossProduct(ab, ap));
-                double proj = ab.X * ap.X + ab.Y * ap.Y;
+                if (p.Equals(a) || p.Equals(b))
+                    continue;
 
-                if (dist > maxDist || (dist == maxDist && proj < minProj))
+                // Cross product magnitude is proportional to perpendicular distance from segment AB
+                double dist = Math.Abs(HelperMethods.CrossProduct(ab, a.Vector(p)));
+                if (dist > bestDist + Constants.Epsilon)
                 {
-                    maxDist = dist;
-                    minProj = proj;
-                    far = p;
+                    bestDist = dist;
+                    farthest = p;
                 }
             }
 
-            var right1 = new List<Point>();
-            var right2 = new List<Point>();
-            Line l1 = new Line(a, far);
-            Line l2 = new Line(far, b);
+            if (farthest == null)
+                return;
 
-            foreach (Point p in region)
+            Line firstEdge = new Line(a, farthest);
+            Line secondEdge = new Line(farthest, b);
+
+            var leftOfFirst = new List<Point>();
+            var leftOfSecond = new List<Point>();
+
+            foreach (Point p in candidates)
             {
-                if (p.Equals(far)) continue;
-                if (HelperMethods.CheckTurn(l1, p) == Enums.TurnType.Right)
-                    right1.Add(p);
-                else if (HelperMethods.CheckTurn(l2, p) == Enums.TurnType.Right)
-                    right2.Add(p);
+                if (p.Equals(farthest) || p.Equals(a) || p.Equals(b))
+                    continue;
+
+                if (HelperMethods.CheckTurn(firstEdge, p) == Enums.TurnType.Right)
+                    leftOfFirst.Add(p);
+                else if (HelperMethods.CheckTurn(secondEdge, p) == Enums.TurnType.Right)
+                    leftOfSecond.Add(p);
             }
 
-            FindHull(a, far, right1, outPoints);
-            outPoints.Add(far);
-            FindHull(far, b, right2, outPoints);
+            BuildHull(a, farthest, leftOfFirst, hull);
+            if (!ContainsPoint(hull, farthest))
+                hull.Add(farthest);
+            BuildHull(farthest, b, leftOfSecond, hull);
         }
 
         public override void Run(List<Point> points, List<Line> lines, List<Polygon> polygons, ref List<Point> outPoints, ref List<Line> outLines, ref List<Polygon> outPolygons)
         {
-            var uniquePointsTmp = new HashSet<Tuple<double, double>>();
-            var pts = new List<Point>();
+            outPoints = new List<Point>();
+
+            var unique = new List<Point>();
             foreach (Point p in points)
             {
-                var cur = new Tuple<double, double>(p.X, p.Y);
-                if (uniquePointsTmp.Contains(cur)) continue;
-                uniquePointsTmp.Add(cur);
-                pts.Add(p);
+                if (!ContainsPoint(unique, p))
+                    unique.Add(p);
             }
 
-            if (pts.Count <= 2)
+            if (unique.Count == 0)
+                return;
+
+            if (unique.Count <= 2)
             {
-                outPoints = new List<Point>(pts);
+                outPoints.AddRange(unique);
                 return;
             }
 
-            // Find the extreme points in the horizontal and vertical directions
-            Point bottomMinX = pts[0], bottomMaxX = pts[0];
-            Point rightMinY = pts[0], rightMaxY = pts[0];
-            Point topMaxX = pts[0], topMinX = pts[0];
-            Point leftMaxY = pts[0], leftMinY = pts[0];
+            // Find the extreme points in the horizontal direction
+            Point minX = unique[0];
+            Point maxX = unique[0];
 
-            foreach (Point p in pts)
+            foreach (Point p in unique)
             {
-                if (p.Y < bottomMinX.Y || (p.Y == bottomMinX.Y && p.X < bottomMinX.X)) bottomMinX = p;
-                if (p.Y < bottomMaxX.Y || (p.Y == bottomMaxX.Y && p.X > bottomMaxX.X)) bottomMaxX = p;
+                if (p.X < minX.X - Constants.Epsilon || (Math.Abs(p.X - minX.X) <= Constants.Epsilon && p.Y < minX.Y))
+                    minX = p;
 
-                if (p.X > rightMinY.X || (p.X == rightMinY.X && p.Y < rightMinY.Y)) rightMinY = p;
-                if (p.X > rightMaxY.X || (p.X == rightMaxY.X && p.Y > rightMaxY.Y)) rightMaxY = p;
-
-                if (p.Y > topMaxX.Y || (p.Y == topMaxX.Y && p.X > topMaxX.X)) topMaxX = p;
-                if (p.Y > topMinX.Y || (p.Y == topMinX.Y && p.X < topMinX.X)) topMinX = p;
-
-                if (p.X < leftMaxY.X || (p.X == leftMaxY.X && p.Y > leftMaxY.Y)) leftMaxY = p;
-                if (p.X < leftMinY.X || (p.X == leftMinY.X && p.Y < leftMinY.Y)) leftMinY = p;
+                if (p.X > maxX.X + Constants.Epsilon || (Math.Abs(p.X - maxX.X) <= Constants.Epsilon && p.Y > maxX.Y))
+                    maxX = p;
             }
 
-            // Compute the initial CCW convex hull of these extreme points.
-            var candidates = new[]
+            if (minX.Equals(maxX))
             {
-                bottomMinX, bottomMaxX,
-                rightMinY, rightMaxY,
-                topMaxX, topMinX,
-                leftMaxY, leftMinY
-            };
-
-            var initialHull = new List<Point>(8);
-            foreach (Point c in candidates)
-            {
-                if (initialHull.Count == 0 || !initialHull[initialHull.Count - 1].Equals(c))
-                    initialHull.Add(c);
+                outPoints.Add(minX);
+                return;
             }
-            if (initialHull.Count > 1 && initialHull[initialHull.Count - 1].Equals(initialHull[0]))
-                initialHull.RemoveAt(initialHull.Count - 1);
 
             // Classify remaining points into exterior regions and prune interior points.
-            int m = initialHull.Count;
-            var regions = new List<Point>[m];
-            var edges = new Line[m];
-            var isDiagonal = new bool[m];
+            Line topLine = new Line(minX, maxX);
+            Line bottomLine = new Line(maxX, minX);
 
-            for (int i = 0; i < m; i++)
+            var upperSet = new List<Point>();
+            var lowerSet = new List<Point>();
+
+            foreach (Point p in unique)
             {
-                regions[i] = new List<Point>();
-                edges[i] = new Line(initialHull[i], initialHull[(i + 1) % m]);
-                isDiagonal[i] = edges[i].Start.X != edges[i].End.X && edges[i].Start.Y != edges[i].End.Y;
+                if (p.Equals(minX) || p.Equals(maxX))
+                    continue;
+
+                if (HelperMethods.CheckTurn(topLine, p) == Enums.TurnType.Right)
+                    upperSet.Add(p);
+                else if (HelperMethods.CheckTurn(bottomLine, p) == Enums.TurnType.Right)
+                    lowerSet.Add(p);
             }
 
-            foreach (Point p in pts)
-            {
-                for (int i = 0; i < m; i++)
-                {
-                    if (isDiagonal[i] && HelperMethods.CheckTurn(edges[i], p) == Enums.TurnType.Right)
-                    {
-                        regions[i].Add(p);
-                        break;
-                    }
-                }
-            }
+            outPoints.Add(minX);
+            BuildHull(minX, maxX, upperSet, outPoints);
 
-            outPoints = new List<Point>();
-            for (int i = 0; i < m; i++)
-            {
-                outPoints.Add(initialHull[i]);
-                FindHull(initialHull[i], initialHull[(i + 1) % m], regions[i], outPoints);
-            }
+            if (!ContainsPoint(outPoints, maxX))
+                outPoints.Add(maxX);
+
+            BuildHull(maxX, minX, lowerSet, outPoints);
         }
 
         public override string ToString()
