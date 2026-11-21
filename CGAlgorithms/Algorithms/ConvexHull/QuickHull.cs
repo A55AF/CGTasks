@@ -30,7 +30,6 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 if (p.Equals(a) || p.Equals(b))
                     continue;
 
-                // Cross product magnitude is proportional to perpendicular distance from segment AB
                 double dist = Math.Abs(HelperMethods.CrossProduct(ab, a.Vector(p)));
                 if (dist > bestDist + Constants.Epsilon)
                 {
@@ -85,7 +84,6 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 return;
             }
 
-            // Find the extreme points in the horizontal direction
             Point minX = unique[0];
             Point maxX = unique[0];
 
@@ -104,7 +102,6 @@ namespace CGAlgorithms.Algorithms.ConvexHull
                 return;
             }
 
-            // Classify remaining points into exterior regions and prune interior points.
             Line topLine = new Line(minX, maxX);
             Line bottomLine = new Line(maxX, minX);
 
